@@ -1,0 +1,1 @@
+{"status": "success", "routine": {"mean": 342.9, "median": 136.1, "mode": 5.0, "std": 1327.2}, "non_routine": {"trimmed": 156.7, "weighted": 347.8, "iqr": 220.7}, "ttest": {"t_stat": -2.52, "p_val": 0.0119}, "regression": {"linear": {"slope": -0.0, "int": 64.23}, "power": {"a": 25.64, "b": 0.18}}}
