@@ -6,7 +6,7 @@ import os
 import io
 
 app = Flask(__name__)
-DATA_FILE = "footfall_data.csv"
+DATA_FILE = "static/footfall_data.csv"
 
 # ==========================================
 # PAGE COMPONENT ROUTES
@@ -132,7 +132,7 @@ def export_data():
             return Response(
                 df.to_csv(index=False),
                 mimetype="text/csv",
-                headers={"Content-disposition": "attachment; filename=Footfall_Analytics_Export.csv"}
+                headers={"Content-disposition": "attachment; filename=static/Footfall_Analytics_Export.csv"}
             )
             
     except Exception as e:

@@ -22,11 +22,11 @@
 <body>
     <div class="sidebar p-4 d-flex flex-column">
         <h4 style="color:#87CEEB" class="mb-0">AI Tracker</h4><small class="mb-4">Unit 10 Retail Analytics</small>
-        <a href="dashboard.html">Dashboard</a>
-        <a href="zones.html" class="active">Zone Comparison</a>
-        <a href="statistics.html">Statistical Analysis</a>
-        <a href="export.html">Reports Export</a>
-        <a href="gdpr.html">GDPR Privacy Mode</a>
+        <a href="/dashboard">Dashboard</a>
+        <a href="/zones" class="active">Zone Comparison</a>
+        <a href="/statistics">Statistical Analysis</a>
+        <a href="/export">Reports Export</a>
+        <a href="/gdpr">GDPR Privacy Mode</a>
     </div>
 
     <div class="main-content">
@@ -70,7 +70,7 @@
 
         async function loadZoneData() {
             // 1. Fetch data as TEXT instead of JSON
-            const res = await fetch('footfall_data.csv');
+            const res = await fetch("{{ url_for('static', filename='footfall_data.csv') }}");
             const csvText = await res.text();
             
             // 2. Parse CSV text

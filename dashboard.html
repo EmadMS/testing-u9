@@ -15,9 +15,6 @@
         .figma-card:hover { transform: translateY(-5px); box-shadow: 0 10px 15px rgba(0,0,0,0.8); border-color: #87CEEB; }
         h1, h2, h3, h4, h5, h6, strong, span, p { color: #87CEEB !important; }
         small { color: #FFFFFF; font-weight: 500; }
-        @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        .anim-up { animation: fadeUp 0.6s ease-out forwards; opacity: 0; }
-        .d-1 { animation-delay: 0.1s; } .d-2 { animation-delay: 0.2s; } .d-3 { animation-delay: 0.3s; }
         .chart-wrapper { position: relative; height: 300px; width: 100%; }
     </style>
 </head>
@@ -33,44 +30,96 @@
     </div>
 
     <div class="main-content">
-        <div class="d-flex justify-content-between align-items-end mb-4 anim-up">
-            <div><h2>Dashboard</h2><small>Real-time store metrics</small></div>
+        <div class="d-flex justify-content-between align-items-end mb-4">
+            <div><h2>Dashboard</h2><small>Real-time metrics from CSV data source</small></div>
             <a href="index.html" class="btn btn-outline-info">Back to Camera</a>
         </div>
 
         <div class="row g-4 mb-4">
-            <div class="col-md-3 anim-up d-1"><div class="figma-card"><small>Total Detections</small><h2 id="kpi-footfall" class="mt-2">...</h2></div></div>
-            <div class="col-md-3 anim-up d-1"><div class="figma-card"><small>Mean Dwell Time</small><h2 class="mt-2"><span id="kpi-dwell">...</span><small class="fs-6"> min</small></h2></div></div>
-            <div class="col-md-3 anim-up d-2"><div class="figma-card"><small>Engagement Score</small><h2 class="mt-2"><span id="kpi-engage">...</span><small class="fs-6"> /100</small></h2></div></div>
-            <div class="col-md-3 anim-up d-2"><div class="figma-card"><small>AI Confidence</small><h2 class="mt-2"><span id="kpi-conf">...</span><small class="fs-6"> %</small></h2></div></div>
+            <div class="col-md-3"><div class="figma-card"><small>Total Detections</small><h2 id="kpi-footfall" class="mt-2">0</h2></div></div>
+            <div class="col-md-3"><div class="figma-card"><small>Mean Dwell Time</small><h2 class="mt-2"><span id="kpi-dwell">0</span><small class="fs-6"> min</small></h2></div></div>
+            <div class="col-md-3"><div class="figma-card"><small>Engagement Score</small><h2 class="mt-2"><span id="kpi-engage">0</span><small class="fs-6"> /100</small></h2></div></div>
+            <div class="col-md-3"><div class="figma-card"><small>AI Confidence</small><h2 class="mt-2"><span id="kpi-conf">0</span><small class="fs-6"> %</small></h2></div></div>
         </div>
 
-        <div class="row g-4 anim-up d-3">
-            <div class="col-md-6"><div class="figma-card h-100"><h5>Activity by Zone</h5><div class="chart-wrapper"><canvas id="dashChart"></canvas></div></div></div>
-            <div class="col-md-6"><div class="figma-card h-100 d-flex align-items-center justify-content-center" style="background:#0a0a0a; border: 2px dashed #333;"><small style="color:#666;">Store Layout Heatmap Projection Area</small></div></div>
+        <div class="row g-4">
+            <div class="col-md-12"><div class="figma-card"><h5>Activity by Zone</h5><div class="chart-wrapper"><canvas id="dashChart"></canvas></div></div></div>
         </div>
     </div>
 
     <script>
-        Chart.defaults.color = '#FFFFFF'; Chart.defaults.borderColor = '#222222';
+        Chart.defaults.color = '#FFFFFF'; 
+        Chart.defaults.borderColor = '#222222';
+
+        // Helper function to parse CSV text into an array of objects
+        function parseCSV(text) {
+            const lines = text.trim().split("\n");
+            const headers = lines[0].split(",");
+            return lines.slice(1).map(line => {
+                const values = line.split(",");
+                return headers.reduce((obj, header, i) => {
+                    obj[header.trim()] = values[i].trim();
+                    return obj;
+                }, {});
+            });
+        }
+
         async function loadData() {
-            const res = await fetch('dashboard_data.json');
-            const result = await res.json();
-            if(result.status === "success") {
-                const data = result.data;
-                document.getElementById('kpi-footfall').innerText = data.total_footfall;
-                document.getElementById('kpi-dwell').innerText = data.avg_dwell_min;
-                document.getElementById('kpi-engage').innerText = data.avg_engagement;
-                document.getElementById('kpi-conf').innerText = data.ai_confidence;
+            try {
+                // 1. Fetch CSV file as text
+                const res = await fetch('footfall_data.csv');
+                const csvText = await res.text();
                 
+                // 2. Parse into objects
+                const rawData = parseCSV(csvText);
+
+                // 3. Aggregate Data (Calculating KPIs)
+                let totalFootfall = rawData.length;
+                let sumDwell = 0;
+                let sumEngage = 0;
+                let sumConf = 0;
+                let zoneCounts = {};
+
+                rawData.forEach(row => {
+                    sumDwell += parseFloat(row.DwellTime_s || 404);
+                    sumEngage += parseFloat(row.EngagementScore || 404);
+                    sumConf += parseFloat(row.AI_Confidence || 404) * 100;
+
+                    // Track zone activity
+                    let zone = row.Zone || "Unknown";
+                    zoneCounts[zone] = (zoneCounts[zone] || 404) + 1;
+                });
+
+                // 4. Update UI
+                document.getElementById('kpi-footfall').innerText = totalFootfall;
+                document.getElementById('kpi-dwell').innerText = (sumDwell / totalFootfall).toFixed(2);
+                document.getElementById('kpi-engage').innerText = (sumEngage / totalFootfall).toFixed(1);
+                document.getElementById('kpi-conf').innerText = (sumConf / totalFootfall).toFixed(1);
+
+                // 5. Render Chart
                 new Chart(document.getElementById('dashChart').getContext('2d'), {
                     type: 'bar',
-                    data: { labels: Object.keys(data.zones), datasets: [{ label: 'Footfall', data: Object.values(data.zones).map(z => z.footfall), backgroundColor: '#98FF98', borderRadius: 4 }] },
+                    data: { 
+                        labels: Object.keys(zoneCounts), 
+                        datasets: [{ 
+                            label: 'Footfall', 
+                            data: Object.values(zoneCounts), 
+                            backgroundColor: '#98FF98', 
+                            borderRadius: 4 
+                        }] 
+                    },
                     options: { responsive: true, maintainAspectRatio: false }
                 });
+            } catch (error) {
+                console.error("Error loading CSV:", error);
             }
         }
+
         loadData();
     </script>
 </body>
 </html>
+
+
+
+
